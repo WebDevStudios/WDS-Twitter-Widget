@@ -152,6 +152,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			'twitter_num'          => '',
 			'twitter_duration'     => '',
 			'twitter_hide_replies' => 0,
+			'show_time_stamp'      => 0,
 			'follow_link_show'     => 0,
 			'follow_link_text'     => '',
 			'consumer_key'         => '',
@@ -198,15 +199,18 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 		echo '<ul>' . "\n";
 
 		$tweets = get_transient( $instance['twitter_id'] . '-' . $instance['twitter_num'] . '-' . $instance['twitter_duration'] );
+		// @dev
+		$tweets = false;
 
 		if ( ! $tweets ) {
-		wp_die( '<xmp>test: '. print_r( $tweets, true ) .'</xmp>' );
-			$count   = isset( $instance['twitter_hide_replies'] ) ? (int) $instance['twitter_num'] + 100 : (int) $instance['twitter_num'];
+			$hide_replies = isset( $instance['twitter_hide_replies'] ) && $instance['twitter_hide_replies'] > 0;
+			$show_time = isset( $instance['show_time_stamp'] ) && $instance['show_time_stamp'] > 0;
+
+			$count = $hide_replies ? (int) $instance['twitter_num'] + 100 : (int) $instance['twitter_num'];
 
 			// Make sure we have our Twitter class
 			if ( ! class_exists( 'TwitterWP' ) )
-				require_once( plugin_dir_path( __FILE__ ) .'TwitterWP/lib/TwitterWP.php' );
-
+				require_once( WDS_TWWI_PATH .'lib/TwitterWP/lib/TwitterWP.php' );
 
 			$app = array(
 				'consumer_key'        => $instance['consumer_key'],
@@ -216,47 +220,56 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			);
 			// initiate your app
 			$tw = TwitterWP::start( $app );
-			wp_die( '<xmp>'. print_r( $tw, true ) .'</xmp>' );
 			$twitter = $tw->get_tweets( $instance['twitter_id'], $count );
 
 			if ( ! $twitter ) {
-				$twitter[] = '<li>' . __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' ) . '</li>' . "\n";
+				$tweets[] = '<li>' . __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' ) . '</li>' . "\n";
 			}
 			elseif ( is_wp_error( $twitter ) ) {
-				$twitter[] = '<li>' . __( 'There was an error while attempting to contact the Twitter API. Please try again.', 'wds_twwi' ) . '</li>' . "\n";
+
+				if ( is_user_logged_in() )
+					$tweets[] = '<li>'. $tw->show_wp_error( $twitter ) .'</li>'."\n";
+				else
+					$tweets[] = '<li>'. __( 'There was an error while attempting to contact the Twitter API. Please try again.', 'wds_twwi' ) . '</li>' ."\n";
 			}
 			else {
-				/** Build the tweets array */
-				foreach ( (array) $twitter as $tweet ) {
-					/** Don't include @ replies (if applicable) */
-					if ( $instance['twitter_hide_replies'] && $tweet->in_reply_to_user_id )
-						continue;
 
-					/** Stop the loop if we've got enough tweets */
-					if ( ! empty( $tweets[(int)$instance['twitter_num'] - 1] ) )
-						break;
+				/** Build the tweets array */
+				foreach ( (array) $twitter as $index => $tweet ) {
+					/** Don't include @ replies (if applicable) */
+					if ( $hide_replies && $tweet->in_reply_to_user_id )
+						continue;
 
 					/** Add tweet to array */
 					$timeago = sprintf( __( 'about %s ago', 'wds_twwi' ), human_time_diff( strtotime( $tweet->created_at ) ) );
 					$timeago_link = sprintf( '<a href="%s" rel="nofollow">%s</a>', esc_url( sprintf( 'http://twitter.com/%s/status/%s', $instance['twitter_id'], $tweet->id_str ) ), esc_html( $timeago ) );
 
-					$tweets[] = '<li>' . genesis_tweet_linkify( $tweet->text ) . ' <span style="font-size: 85%;">' . $timeago_link . '</span></li>' . "\n";
+					$content = $this->twitter_linkify( $tweet->text );
+					if ( $show_time )
+						$content .= '<span class="time-ago">' . $timeago_link . '</span></li>' . "\n";
+					$tweets[] = apply_filters( 'wds_tweet_content', $content, $tweet, $instance, $args );
+
+					/** Stop the loop if we've got enough tweets */
+					if ( $hide_replies && $index >= (int) $instance['twitter_num'] )
+							break;
+
 				}
 
 				/** Just in case */
 				$tweets = array_slice( (array) $tweets, 0, (int) $instance['twitter_num'] );
 
+
 				if ( $instance['follow_link_show'] && $instance['follow_link_text'] )
-					$tweets[] = '<li class="last"><a href="' . esc_url( 'http://twitter.com/'.$instance['twitter_id'] ).'">'. esc_html( $instance['follow_link_text'] ) .'</a></li>';
+					$tweets[] = '<a href="' . esc_url( 'http://twitter.com/'.$instance['twitter_id'] ).'">'. esc_html( $instance['follow_link_text'] ) .'</a>';
 
 				$time = ( absint( $instance['twitter_duration'] ) * 60 );
-
 				/** Save them in transient */
 				set_transient( $instance['twitter_id'].'-'.$instance['twitter_num'].'-'.$instance['twitter_duration'], $tweets, $time );
 			}
 		}
+
 		foreach( (array) $tweets as $tweet )
-			echo $tweet;
+			printf( '<li>%s</li>', $tweet );
 
 		echo '</ul>' . "\n";
 
@@ -339,6 +352,11 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 		</p>
 
 		<p>
+			<input id="<?php echo $this->get_field_id( 'show_time_stamp' ); ?>" type="checkbox" name="<?php echo $this->get_field_name( 'show_time_stamp' ); ?>" value="1" <?php checked( $instance['show_time_stamp'] ); ?>/>
+			<label for="<?php echo $this->get_field_id( 'show_time_stamp' ); ?>"><?php _e( 'Show Tweet Timestamp', 'wds_twwi' ); ?></label>
+		</p>
+
+		<p>
 			<label for="<?php echo $this->get_field_id( 'twitter_duration' ); ?>"><?php _e( 'Load new Tweets every', 'wds_twwi' ); ?></label>
 			<select name="<?php echo $this->get_field_name( 'twitter_duration' ); ?>" id="<?php echo $this->get_field_id( 'twitter_duration' ); ?>">
 				<option value="5" <?php selected( 5, $instance['twitter_duration'] ); ?>><?php _e( '5 Min.' , 'wds_twwi' ); ?></option>
@@ -362,6 +380,31 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			<input type="text" id="<?php echo $this->get_field_id( 'follow_link_text' ); ?>" name="<?php echo $this->get_field_name( 'follow_link_text' ); ?>" value="<?php echo esc_attr( $instance['follow_link_text'] ); ?>" class="widefat" />
 		</p>
 		<?php
+
+	}
+
+	/**
+	 * Parses tweets and generates HTML anchor tags around URLs, usernames,
+	 * username/list pairs and hashtags.
+	 *
+	 * @link https://github.com/mzsanford/twitter-text-php
+	 *
+	 * @param  string $content Post content
+	 * @return string          Modified post content
+	 */
+	public function twitter_linkify( $content ) {
+
+		// Include the Twitter-Text-PHP library
+		if ( ! class_exists( 'Twitter_Regex' ) )
+			require_once( WDS_TWWI_PATH .'lib/TwitterText/lib/Twitter/Autolink.php' );
+
+		return Twitter_Autolink::create( $content, true )
+		->setNoFollow(false)->setExternal(true)->setTarget('_blank')
+		->setUsernameClass('tweet-url username')
+		->setListClass('tweet-url list-slug')
+		->setHashtagClass('tweet-url hashtag')
+		->setURLClass('tweet-url tweek-link')
+		->addLinks();
 
 	}
 
