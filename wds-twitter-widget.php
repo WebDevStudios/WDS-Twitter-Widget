@@ -198,7 +198,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 
 		echo '<ul>' . "\n";
 
-		$tweets = get_transient( $instance['twitter_id'] . '-' . $instance['twitter_num'] . '-' . $instance['twitter_duration'] );
+		$tweets = get_transient( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ) . '-' . $instance['twitter_num'] . '-' . $instance['twitter_duration'] );
 		// @dev
 		$tweets = false;
 
@@ -220,7 +220,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			);
 			// initiate your app
 			$tw = TwitterWP::start( $app );
-			$twitter = $tw->get_tweets( $instance['twitter_id'], $count );
+			$twitter = $tw->get_tweets( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ), $count );
 
 			if ( ! $twitter ) {
 				$tweets[] = '<li>' . __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' ) . '</li>' . "\n";
@@ -242,7 +242,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 
 					/** Add tweet to array */
 					$timeago = sprintf( __( 'about %s ago', 'wds_twwi' ), human_time_diff( strtotime( $tweet->created_at ) ) );
-					$timeago_link = sprintf( '<a href="%s" rel="nofollow">%s</a>', esc_url( sprintf( 'http://twitter.com/%s/status/%s', $instance['twitter_id'], $tweet->id_str ) ), esc_html( $timeago ) );
+					$timeago_link = sprintf( '<a href="%s" rel="nofollow">%s</a>', esc_url( sprintf( 'http://twitter.com/%s/status/%s', apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ), $tweet->id_str ) ), esc_html( $timeago ) );
 
 					$content = $this->twitter_linkify( $tweet->text );
 					if ( $show_time )
@@ -260,11 +260,11 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 
 
 				if ( $instance['follow_link_show'] && $instance['follow_link_text'] )
-					$tweets[] = '<a href="' . esc_url( 'http://twitter.com/'.$instance['twitter_id'] ).'">'. esc_html( $instance['follow_link_text'] ) .'</a>';
+					$tweets[] = '<a href="' . esc_url( 'http://twitter.com/'.apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ) ).'">'. esc_html( $instance['follow_link_text'] ) .'</a>';
 
 				$time = ( absint( $instance['twitter_duration'] ) * 60 );
 				/** Save them in transient */
-				set_transient( $instance['twitter_id'].'-'.$instance['twitter_num'].'-'.$instance['twitter_duration'], $tweets, $time );
+				set_transient( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ).'-'.$instance['twitter_num'].'-'.$instance['twitter_duration'], $tweets, $time );
 			}
 		}
 
