@@ -194,7 +194,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 
 		$tweets = get_transient( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ) . '-' . $instance['twitter_num'] . '-' . $instance['twitter_duration'] );
 
-		if ( ! $tweets ) {
+		if ( ! $tweets || ( isset( $_GET['delete-trans'] ) && $_GET['delete-trans'] == true ) ) {
 			$hide_replies = isset( $instance['twitter_hide_replies'] ) && $instance['twitter_hide_replies'] > 0;
 			$show_time = isset( $instance['show_time_stamp'] ) && $instance['show_time_stamp'] > 0;
 
@@ -322,6 +322,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			<label for="<?php echo $this->get_field_id( 'access_token_secret' ); ?>"><?php _e( 'Access Token Secret', 'wds_twwi' ); ?>:</label>
 			<input type="text" id="<?php echo $this->get_field_id( 'access_token_secret' ); ?>" name="<?php echo $this->get_field_name( 'access_token_secret' ); ?>" value="<?php echo esc_attr( $instance['access_token_secret'] ); ?>" class="widefat" />
 		</p>
+		<!-- <p class="description"><a href="http://webdevstudios.com/2013/08/29/how-to-create-a-twitter-app-to-help-alleviate-your-1-1-api-changeover-woes" target="_blank"><?php _e( 'How To Create a Twitter App', 'wds_twwi' ); ?></a></p> -->
 
 		<h3><?php _e( 'Widget Options', 'wds_twwi' ); ?></h3>
 		<p>
