@@ -190,7 +190,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 		if ( $instance['title'] )
 			echo $before_title . apply_filters( 'widget_title', $instance['title'], $instance, $this->id_base ) . $after_title;
 
-		echo '<ul>' . "\n";
+		echo '<ul class="wds-latest-tweets">' . "\n";
 
 		$tweets = get_transient( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ) . '-' . $instance['twitter_num'] . '-' . $instance['twitter_duration'] );
 		// @dev
