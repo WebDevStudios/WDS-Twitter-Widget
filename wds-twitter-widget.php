@@ -193,8 +193,6 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 		echo '<ul class="wds-latest-tweets">' . "\n";
 
 		$tweets = get_transient( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ) . '-' . $instance['twitter_num'] . '-' . $instance['twitter_duration'] );
-		// @dev
-		$tweets = false;
 
 		if ( ! $tweets ) {
 			$hide_replies = isset( $instance['twitter_hide_replies'] ) && $instance['twitter_hide_replies'] > 0;
@@ -217,14 +215,14 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			$twitter = $tw->get_tweets( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ), $count );
 
 			if ( ! $twitter ) {
-				$tweets[] = '<li>' . __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' ) . '</li>' . "\n";
+				$tweets[] = __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' );
 			}
 			elseif ( is_wp_error( $twitter ) ) {
 
 				if ( is_user_logged_in() )
-					$tweets[] = '<li>'. $tw->show_wp_error( $twitter ) .'</li>'."\n";
+					$tweets[] = $tw->show_wp_error( $twitter );
 				else
-					$tweets[] = '<li>'. __( 'There was an error while attempting to contact the Twitter API. Please try again.', 'wds_twwi' ) . '</li>' ."\n";
+					$tweets[] = __( 'There was an error while attempting to contact the Twitter API. Please try again.', 'wds_twwi' );
 			}
 			else {
 
@@ -262,10 +260,11 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			}
 		}
 
+		$format = apply_filters( 'wds_twwi_tweet_format', "<li>%s</li>\n" );
 		foreach( (array) $tweets as $tweet )
-			printf( '<li>%s</li>', $tweet );
+			printf( $format, $tweet );
 
-		echo '</ul>' . "\n";
+		echo '</ul>'."\n";
 
 		echo $after_widget;
 
