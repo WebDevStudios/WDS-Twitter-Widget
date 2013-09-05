@@ -184,6 +184,10 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 
 		/** Merge with defaults */
 		$instance = wp_parse_args( (array) $instance, $this->defaults );
+		$twitter_id = apply_filters( 'wds_twwi_twitter_id', ( isset( $instance['twitter_id'] ) ? $instance['twitter_id'] : '' ), $instance );
+		$twitter_num = isset( $instance['twitter_num'] ) ? $instance['twitter_num'] : 1;
+		$twitter_duration = isset( $instance['twitter_duration'] ) ? $instance['twitter_duration'] : 60;
+		$trans_id = $twitter_id .'-'. $twitter_num .'-'. $twitter_duration;
 
 		echo $before_widget;
 
@@ -192,13 +196,13 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 
 		echo '<ul class="wds-latest-tweets">' . "\n";
 
-		$tweets = get_transient( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ) . '-' . $instance['twitter_num'] . '-' . $instance['twitter_duration'] );
+		$tweets = get_transient( $trans_id );
 
 		if ( ! $tweets || ( isset( $_GET['delete-trans'] ) && $_GET['delete-trans'] == true ) ) {
 			$hide_replies = isset( $instance['twitter_hide_replies'] ) && $instance['twitter_hide_replies'] > 0;
 			$show_time = isset( $instance['show_time_stamp'] ) && $instance['show_time_stamp'] > 0;
 
-			$count = $hide_replies ? (int) $instance['twitter_num'] + 100 : (int) $instance['twitter_num'];
+			$count = $hide_replies ? (int) $twitter_num + 100 : (int) $twitter_num;
 
 			// Make sure we have our Twitter class
 			if ( ! class_exists( 'TwitterWP' ) )
@@ -212,7 +216,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			);
 			// initiate your app
 			$tw = TwitterWP::start( $app );
-			$twitter = $tw->get_tweets( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ), $count );
+			$twitter = $tw->get_tweets( $twitter_id, $count );
 
 			if ( ! $twitter ) {
 				$tweets[] = __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' );
@@ -235,7 +239,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 
 					/** Add tweet to array */
 					$timeago = sprintf( __( 'about %s ago', 'wds_twwi' ), human_time_diff( strtotime( $tweet->created_at ) ) );
-					$timeago_link = sprintf( '<a href="%s" rel="nofollow">%s</a>', esc_url( sprintf( 'http://twitter.com/%s/status/%s', apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ), $tweet->id_str ) ), esc_html( $timeago ) );
+					$timeago_link = sprintf( '<a href="%s" rel="nofollow">%s</a>', esc_url( sprintf( 'http://twitter.com/%s/status/%s', $twitter_id, $tweet->id_str ) ), esc_html( $timeago ) );
 
 					$content = $this->twitter_linkify( $tweet->text );
 					if ( $show_time )
@@ -243,21 +247,21 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 					$tweets[] = apply_filters( 'wds_tweet_content', $content, $tweet, $instance, $args );
 
 					/** Stop the loop if we've got enough tweets */
-					if ( $hide_replies && $count >= (int) $instance['twitter_num'] )
+					if ( $hide_replies && $count >= (int) $twitter_num )
 							break;
 					$count++;
 				}
 
 				/** Just in case */
-				$tweets = array_slice( (array) $tweets, 0, (int) $instance['twitter_num'] );
+				$tweets = array_slice( (array) $tweets, 0, (int) $twitter_num );
 
 
 				if ( $instance['follow_link_show'] && $instance['follow_link_text'] )
-					$tweets[] = '<a href="' . esc_url( 'http://twitter.com/'.apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ) ).'">'. esc_html( $instance['follow_link_text'] ) .'</a>';
+					$tweets[] = '<a href="' . esc_url( 'http://twitter.com/'.$twitter_id ).'">'. esc_html( $instance['follow_link_text'] ) .'</a>';
 
-				$time = ( absint( $instance['twitter_duration'] ) * 60 );
+				$time = ( absint( $twitter_duration ) * 60 );
 				/** Save them in transient */
-				set_transient( apply_filters( 'wds_twwi_twitter_id', $instance['twitter_id'] ).'-'.$instance['twitter_num'].'-'.$instance['twitter_duration'], $tweets, $time );
+				set_transient( $trans_id, $tweets, $time );
 			}
 		}
 
@@ -286,10 +290,22 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 	 */
 	function update( $new_instance, $old_instance ) {
 
+
+		$twitter_id = apply_filters( 'wds_twwi_twitter_id', ( isset( $old_instance['twitter_id'] ) ? $old_instance['twitter_id'] : '' ), $old_instance );
+		$twitter_num = isset( $old_instance['twitter_num'] ) ? $old_instance['twitter_num'] : 1;
+		$twitter_duration = isset( $old_instance['twitter_duration'] ) ? $old_instance['twitter_duration'] : 60;
+		$trans_id = $twitter_id .'-'. $twitter_num .'-'. $twitter_duration;
+
 		/** Force the transient to refresh */
-		delete_transient( $old_instance['twitter_id'].'-'.$old_instance['twitter_num'].'-'.$old_instance['twitter_duration'] );
-		$new_instance['title'] = strip_tags( $new_instance['title'] );
-		return $new_instance;
+		delete_transient( $trans_id );
+
+		$instance['twitter_id'] = str_replace( '@', '', strip_tags( $new_instance['twitter_id'] ) );
+
+		foreach ( $this->defaults as $key => $value ) {
+			$instance[$key] = strip_tags( ( isset( $new_instance[$key] ) ? $new_instance[$key] : $value ) );
+		}
+
+		return $instance;
 
 	}
 
