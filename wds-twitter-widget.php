@@ -226,6 +226,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			}
 			else {
 
+				$count = 1;
 				/** Build the tweets array */
 				foreach ( (array) $twitter as $index => $tweet ) {
 					/** Don't include @ replies (if applicable) */
@@ -242,9 +243,9 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 					$tweets[] = apply_filters( 'wds_tweet_content', $content, $tweet, $instance, $args );
 
 					/** Stop the loop if we've got enough tweets */
-					if ( $hide_replies && $index >= (int) $instance['twitter_num'] )
+					if ( $hide_replies && $count >= (int) $instance['twitter_num'] )
 							break;
-
+					$count++;
 				}
 
 				/** Just in case */
