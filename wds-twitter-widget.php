@@ -58,12 +58,9 @@ class Wds_Twitter_Widget {
 	 * @since  0.1.0
 	 */
 	private function __construct() {
-
 		add_action( 'init', array( $this, 'hooks' )  );
 		add_action( 'admin_init', array( $this, 'admin_hooks' )  );
 		add_action( 'widgets_init', array( $this, 'widget' )  );
-		// Wireup filters
-		// Wireup shortcodes
 	}
 
 	/**
