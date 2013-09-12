@@ -1,5 +1,5 @@
 === WDS Twitter Widget ===
-Contributors:      jtsternberg
+Contributors:      webdevstudios, jtsternberg
 Donate link:       http://webdevstudios.com
 Tags:
 Requires at least: 3.6.0
