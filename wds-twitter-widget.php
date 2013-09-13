@@ -287,7 +287,6 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 	 */
 	function update( $new_instance, $old_instance ) {
 
-
 		$twitter_id = apply_filters( 'wds_twwi_twitter_id', ( isset( $old_instance['twitter_id'] ) ? $old_instance['twitter_id'] : '' ), $old_instance );
 		$twitter_num = isset( $old_instance['twitter_num'] ) ? $old_instance['twitter_num'] : 1;
 		$twitter_duration = isset( $old_instance['twitter_duration'] ) ? $old_instance['twitter_duration'] : 60;
