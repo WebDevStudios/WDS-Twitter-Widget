@@ -1,0 +1,99 @@
+.tweet {
+	padding: 15px;
+	border-bottom: 1px solid #cfcfcf;
+}
+
+.wds-latest-tweets .tweet.odd {
+	background: #e6e6e6;
+}
+
+.tweet-head {
+	position: relative;
+	margin-bottom: 5px;
+	padding-right: 32px;
+}
+
+.tweet-head a {
+	text-decoration: none;
+}
+
+.tweet-portrait {
+	border-radius: 50%;
+	border: 2px solid #b4b4b4;
+	float: left;
+	margin-right: 4px;
+	width: 35px;
+	height: 35px;
+}
+
+.tweet-name {
+	font-size: 12px;
+	font-family: 'Helvetica Neue', sans-serif;
+	font-weight: bold;
+	color: #6F6F6F;
+	text-transform: uppercase;
+	line-height: 1.2em;
+	padding-top: 6px;
+}
+
+.tweet-username {
+	font-size: 12px;
+	font-family: 'Helvetica Neue', sans-serif;
+	font-style: italic;
+	color: #a2a2a2;
+	line-height: 1.2em;
+}
+
+.tweet-time {
+	position: absolute;
+	right: 0;
+	top: 0;
+	font-size: 16px;
+	color: #777;
+	font-family: 'Helvetica Neue', sans-serif;
+	padding-left: 18px;
+	background: url(imgs/tweet-icon-twitter.png) no-repeat left center;
+}
+
+.tweet-time:hover,.tweet-time:active,.tweet-time:visited {
+	color: #777;
+}
+
+.tweet-body {
+	margin-bottom: 10px;
+	color: #777;
+	line-height: 1.2em;
+}
+
+.tweet-body a,.tweet-body a:visited {
+	text-decoration: none;
+}
+
+.tweet-body a:hover {
+	text-decoration: underline;
+}
+
+.tweet-foot {
+	font-size: 10px;
+	line-height: 16px;
+}
+
+.tweet-foot a {
+	color: #999;
+	text-decoration: none;
+}
+
+.tweet-reply,.tweet-retweet,.tweet-favorite {
+	margin-right: 10px;
+	padding-left: 16px;
+	padding-top: 2px;
+	background: url(imgs/tweet-icon-reply.png) no-repeat 0px 2px;
+}
+
+.tweet-retweet {
+	background: url(imgs/tweet-icon-retweet.png) no-repeat 0px 3px;
+}
+
+.tweet-favorite {
+	background: url(imgs/tweet-icon-favorite.png) no-repeat left top;
+}

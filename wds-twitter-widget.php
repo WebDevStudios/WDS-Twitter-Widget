@@ -3,7 +3,7 @@
  * Plugin Name: WDS Twitter Widget
  * Plugin URI:  http://webdevstudios.com
  * Description: WordPress Twitter widget
- * Version:     0.1.0
+ * Version:     0.1.1
  * Author:      WebDevStudios
  * Author URI:  http://webdevstudios.com
  * Donate link: http://webdevstudios.com
@@ -31,26 +31,44 @@
  */
 
 // Useful global constants
-define( 'WDS_TWWI_VERSION', '0.1.0' );
+define( 'WDS_TWWI_VERSION', '0.1.1' );
 define( 'WDS_TWWI_URL',     plugin_dir_url( __FILE__ ) );
 define( 'WDS_TWWI_PATH',    dirname( __FILE__ ) . '/' );
 
-
-class Wds_Twitter_Widget {
+class WDS_Twitter {
 
 	// A single instance of this class.
-	private static $instance = null;
+	private static $settings = null;
+	// Default settings
+	protected static $defaults = array(
+		'title'                => '',
+		'twitter_id'           => '',
+		'twitter_num'          => 1,
+		'twitter_duration'     => 60,
+		'twitter_hide_replies' => 0,
+		'show_time_stamp'      => 0,
+		'follow_link_show'     => 0,
+		'follow_link_text'     => '',
+		'consumer_key'         => '',
+		'consumer_secret'      => '',
+		'access_token'         => '',
+		'access_token_secret'  => '',
+	);
+	// Generic Twitter API error
+	public static $error;
+	// Set to true to programatically set app creds (recommended)
+	public static $hide_twitter_app_fields = false;
 
 	/**
 	 * Creates or returns an instance of this class.
 	 * @since  0.1.0
-	 * @return Wds_Twitter_Widget A single instance of this class.
+	 * @return WDS_Twitter A single instance of this class.
 	 */
 	public static function init() {
-		if ( null == self::$instance )
-			self::$instance = new self();
+		if ( null == self::$settings )
+			self::$settings = new self();
 
-		return self::$instance;
+		return self::$settings;
 	}
 
 	/**
@@ -58,336 +76,164 @@ class Wds_Twitter_Widget {
 	 * @since  0.1.0
 	 */
 	private function __construct() {
-		add_action( 'init', array( $this, 'hooks' )  );
-		add_action( 'admin_init', array( $this, 'admin_hooks' )  );
-		add_action( 'widgets_init', array( $this, 'widget' )  );
+		add_action( 'init', array( $this, 'hooks' ) );
+		add_action( 'widgets_init', array( $this, 'widget' ) );
 	}
 
 	/**
 	 * Init hooks
 	 * @since  0.1.0
-	 * @return null
 	 */
 	public function hooks() {
+		// Generic Twitter API error
+		self::$error = __( 'There was an error while attempting to contact the Twitter API. Please try again.', 'wds_twwi' );
 		$locale = apply_filters( 'plugin_locale', get_locale(), 'wds_twwi' );
 		load_textdomain( 'wds_twwi', WP_LANG_DIR . '/wds_twwi/wds_twwi-' . $locale . '.mo' );
 		load_plugin_textdomain( 'wds_twwi', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 	}
 
 	/**
-	 * Hooks for the Admin
+	 * Registers widget
 	 * @since  0.1.0
-	 * @return null
 	 */
-	public function admin_hooks() {
-	}
-
 	public function widget() {
+		// Filter to turn off widget registration
+		if ( ! apply_filters( 'wds_twwi_do_widget', true ) )
+			return;
+		// Include widget
+		require_once( WDS_TWWI_PATH .'lib/WDS_Latest_Tweets_Widget.php' );
+		// Register widget
 		register_widget( 'WDS_Latest_Tweets_Widget' );
+		// easter egg
+		if ( ! apply_filters( 'wds_twwi_alt_widget_style', false ) )
+			return;
+		// Modify styling of widget
+		require_once( WDS_TWWI_PATH .'lib/alt-widget-style/WDS_Twitter_Widget_Mod.php' );
 	}
 
-}
-
-// init our class
-Wds_Twitter_Widget::init();
-
-
-/**
- * Activate the plugin
- */
-function wds_twwi_activate() {
-	// First load the init scripts in case any rewrite functionality is being loaded
-	Wds_Twitter_Widget::init();
-
-	flush_rewrite_rules();
-}
-register_activation_hook( __FILE__, 'wds_twwi_activate' );
-
-/**
- * Deactivate the plugin
- * Uninstall routines should be in uninstall.php
- */
-function wds_twwi_deactivate() {
-
-}
-register_deactivation_hook( __FILE__, 'wds_twwi_deactivate' );
-
-
-/**
- * Genesis Latest Tweets widget class.
- *
- * @category Genesis
- * @package Widgets
- *
- * @since 0.1.8
- */
-class WDS_Latest_Tweets_Widget extends WP_Widget {
+	/**
+	 * Gets and displays an html list of formatted tweets
+	 * @since  0.1.1
+	 * @param  array $settings Settings for grabbing tweets
+	 */
+	public static function tweets_list( $settings ) {
+		echo self::get_tweets_list( $settings );
+	}
 
 	/**
-	 * Holds widget settings defaults, populated in constructor.
-	 *
-	 * @var array
+	 * Gets an html list of formatted tweets
+	 * @since  0.1.1
+	 * @param  array  $settings Settings for grabbing tweets
+	 * @return string           Html list of formatted tweets
 	 */
-	protected $defaults;
+	public static function get_tweets_list( $settings ) {
 
-	/**
-	 * Constructor. Set the default widget options and create widget.
-	 *
-	 * @since 0.1.8
-	 */
-	function __construct() {
+		$list_format  = apply_filters( 'wds_twwi_tweet_list_format', "<ul class=\"wds-latest-tweets\">\n%s</ul>\n" );
+		$tweet_format = apply_filters( 'wds_twwi_tweet_format', "\t<li>%s</li>\n" );
 
-		$this->defaults = array(
-			'title'                => '',
-			'twitter_id'           => '',
-			'twitter_num'          => '',
-			'twitter_duration'     => '',
-			'twitter_hide_replies' => 0,
-			'show_time_stamp'      => 0,
-			'follow_link_show'     => 0,
-			'follow_link_text'     => '',
-			'consumer_key'         => '',
-			'consumer_secret'      => '',
-			'access_token'         => '',
-			'access_token_secret'  => '',
-		);
+		$list = '';
+		$tweets = self::get_tweets( $settings );
+		foreach( (array) $tweets as $tweet )
+			$list .= sprintf( $tweet_format, $tweet );
 
-		$widget_ops = array(
-			'classname'   => 'latest-tweets icon-twitter',
-			'description' => __( 'Display a list of your latest tweets.', 'wds_twwi' ),
-		);
-
-		$control_ops = array(
-			'id_base' => 'latest-tweets',
-			'width'   => 200,
-			'height'  => 250,
-		);
-
-		$this->WP_Widget( 'latest-tweets', __('WDS - Latest Tweets', 'wds_twwi'), $widget_ops, $control_ops );
+		return sprintf( $list_format, $list );
 
 	}
 
 	/**
-	 * Echo the widget content.
-	 *
-	 * @since 0.1.8
-	 *
-	 * @param array $args Display arguments including before_title, after_title, before_widget, and after_widget.
-	 * @param array $instance The settings for the particular instance of the widget
+	 * Gets array of formatted tweets (cached in a transient)
+	 * @since  0.1.1
+	 * @param  array  $settings Settings for grabbing tweets
+	 * @return array            Array of formatted tweets
 	 */
-	function widget( $args, $instance ) {
+	public static function get_tweets( $settings ) {
 
-		extract( $args );
+		// Merge with defaults
+		$settings = wp_parse_args( (array) $settings, self::defaults() );
 
-		/** Merge with defaults */
-		$instance = wp_parse_args( (array) $instance, $this->defaults );
-		$twitter_id = apply_filters( 'wds_twwi_twitter_id', ( isset( $instance['twitter_id'] ) ? $instance['twitter_id'] : '' ), $instance );
-		$twitter_num = isset( $instance['twitter_num'] ) ? $instance['twitter_num'] : 1;
-		$twitter_duration = isset( $instance['twitter_duration'] ) ? $instance['twitter_duration'] : 60;
+		$twitter_id = sanitize_text_field( apply_filters( 'wds_twwi_twitter_id', $settings['twitter_id'], $settings ) );
+		if ( ! trim( $twitter_id ) )
+			return self::do_error( __( 'Please provide a Twitter Username.', 'wds_twwi' ) );
+
+		$twitter_num = (int) $settings['twitter_num'];
+		$twitter_duration = absint( $settings['twitter_duration'] ) < 1 ? 60 : absint( $settings['twitter_duration'] );
+
+		// create our transient ID
 		$trans_id = $twitter_id .'-'. $twitter_num .'-'. $twitter_duration;
+		// Should we reset our data?
+		$reset_trans = isset( $_GET['delete-trans'] ) && $_GET['delete-trans'] == true;
 
-		echo $before_widget;
-
-		if ( $instance['title'] )
-			echo $before_title . apply_filters( 'widget_title', $instance['title'], $instance, $this->id_base ) . $after_title;
-
-		echo '<ul class="wds-latest-tweets">' . "\n";
-
-		$tweets = get_transient( $trans_id );
-
-		if ( ! $tweets || ( isset( $_GET['delete-trans'] ) && $_GET['delete-trans'] == true ) ) {
-			$hide_replies = isset( $instance['twitter_hide_replies'] ) && $instance['twitter_hide_replies'] > 0;
-			$show_time = isset( $instance['show_time_stamp'] ) && $instance['show_time_stamp'] > 0;
-
-			$count = $hide_replies ? (int) $twitter_num + 100 : (int) $twitter_num;
+		// If we're resetting the transient, or our transient is expired
+		if ( $reset_trans || ! ( $tweets = get_transient( $trans_id ) ) ) {
+			$hide_replies = $settings['twitter_hide_replies'];
+			$show_time = $settings['show_time_stamp'];
+			$number = $hide_replies ? $twitter_num + 80 : $twitter_num;
+			$tweets = array();
 
 			// Make sure we have our Twitter class
 			if ( ! class_exists( 'TwitterWP' ) )
 				require_once( WDS_TWWI_PATH .'lib/TwitterWP/lib/TwitterWP.php' );
 
-			$app = array(
-				'consumer_key'        => $instance['consumer_key'],
-				'consumer_secret'     => $instance['consumer_secret'],
-				'access_token'        => $instance['access_token'],
-				'access_token_secret' => $instance['access_token_secret'],
-			);
-			// initiate your app
-			$tw = TwitterWP::start( $app );
-			$twitter = $tw->get_tweets( $twitter_id, $count );
+			// Initiate our Twitter app
+			$tw = TwitterWP::start( array(
+				$settings['consumer_key'],
+				$settings['consumer_secret'],
+				$settings['access_token'],
+				$settings['access_token_secret']
+			) );
+			if ( is_wp_error( $tw ) ) {
+				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $tw ) : '' );
+			}
+
+			// Retrieve tweets from the api
+			$twitter = $tw->get_tweets( $twitter_id, $number );
 
 			if ( ! $twitter ) {
-				$tweets[] = __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' );
+				return array( __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' ) );
+
+			} elseif ( is_wp_error( $twitter ) ) {
+				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $twitter ) : '' );
 			}
-			elseif ( is_wp_error( $twitter ) ) {
 
-				if ( is_user_logged_in() )
-					$tweets[] = $tw->show_wp_error( $twitter );
-				else
-					$tweets[] = __( 'There was an error while attempting to contact the Twitter API. Please try again.', 'wds_twwi' );
-			}
-			else {
+			$count = 1;
+			// Build the tweets array
+			foreach ( (array) $twitter as $tweet ) {
+				// Don't include @ replies (if applicable)
+				if ( $hide_replies && $tweet->in_reply_to_user_id )
+					continue;
 
-				$count = 1;
-				/** Build the tweets array */
-				foreach ( (array) $twitter as $index => $tweet ) {
-					/** Don't include @ replies (if applicable) */
-					if ( $hide_replies && $tweet->in_reply_to_user_id )
-						continue;
+				// Format tweet (hashtags, links, etc)
+				$content = self::twitter_linkify( $tweet->text );
 
-					/** Add tweet to array */
+				if ( $show_time ) {
+					// Calculate time difference
 					$timeago = sprintf( __( 'about %s ago', 'wds_twwi' ), human_time_diff( strtotime( $tweet->created_at ) ) );
 					$timeago_link = sprintf( '<a href="%s" rel="nofollow">%s</a>', esc_url( sprintf( 'http://twitter.com/%s/status/%s', $twitter_id, $tweet->id_str ) ), esc_html( $timeago ) );
-
-					$content = $this->twitter_linkify( $tweet->text );
-					if ( $show_time )
-						$content .= '<span class="time-ago">' . $timeago_link . '</span></li>' . "\n";
-					$tweets[] = apply_filters( 'wds_tweet_content', $content, $tweet, $instance, $args );
-
-					/** Stop the loop if we've got enough tweets */
-					if ( $hide_replies && $count >= (int) $twitter_num )
-							break;
-					$count++;
+					// Include timestamp
+					$content .= '<span class="time-ago">'. $timeago_link .'</span>'."\n";
 				}
 
-				/** Just in case */
-				$tweets = array_slice( (array) $tweets, 0, (int) $twitter_num );
+				// Add tweet to array
+				$tweets[] = apply_filters( 'wds_twwi_tweet_content', $content, $tweet, $settings );
 
-
-				if ( $instance['follow_link_show'] && $instance['follow_link_text'] )
-					$tweets[] = '<a href="' . esc_url( 'http://twitter.com/'.$twitter_id ).'">'. esc_html( $instance['follow_link_text'] ) .'</a>';
-
-				$time = ( absint( $twitter_duration ) * 60 );
-				/** Save them in transient */
-				set_transient( $trans_id, $tweets, $time );
+				// Stop the loop if we've got enough tweets
+				if ( $hide_replies && $count >= $twitter_num )
+						break;
+				$count++;
 			}
+
+			// Just in case
+			$tweets = array_slice( (array) $tweets, 0, $twitter_num );
+
+			if ( $settings['follow_link_show'] && $settings['follow_link_text'] )
+				$tweets[] = '<a href="' . esc_url( 'http://twitter.com/'.$twitter_id ).'" target="_blank">'. esc_html( $settings['follow_link_text'] ) .'</a>';
+
+			$time = ( $twitter_duration * 60 );
+			// Save tweets to a transient
+			set_transient( $trans_id, $tweets, $time );
 		}
 
-		$format = apply_filters( 'wds_twwi_tweet_format', "<li>%s</li>\n" );
-		foreach( (array) $tweets as $tweet )
-			printf( $format, $tweet );
-
-		echo '</ul>'."\n";
-
-		echo $after_widget;
-
-	}
-
-	/**
-	 * Update a particular instance.
-	 *
-	 * This function should check that $new_instance is set correctly.
-	 * The newly calculated value of $instance should be returned.
-	 * If "false" is returned, the instance won't be saved/updated.
-	 *
-	 * @since 0.1.8
-	 *
-	 * @param array $new_instance New settings for this instance as input by the user via form()
-	 * @param array $old_instance Old settings for this instance
-	 * @return array Settings to save or bool false to cancel saving
-	 */
-	function update( $new_instance, $old_instance ) {
-
-		$twitter_id = apply_filters( 'wds_twwi_twitter_id', ( isset( $old_instance['twitter_id'] ) ? $old_instance['twitter_id'] : '' ), $old_instance );
-		$twitter_num = isset( $old_instance['twitter_num'] ) ? $old_instance['twitter_num'] : 1;
-		$twitter_duration = isset( $old_instance['twitter_duration'] ) ? $old_instance['twitter_duration'] : 60;
-		$trans_id = $twitter_id .'-'. $twitter_num .'-'. $twitter_duration;
-
-		/** Force the transient to refresh */
-		delete_transient( $trans_id );
-
-		$instance['twitter_id'] = str_replace( '@', '', strip_tags( $new_instance['twitter_id'] ) );
-
-		foreach ( $this->defaults as $key => $value ) {
-			$instance[$key] = strip_tags( ( isset( $new_instance[$key] ) ? $new_instance[$key] : $value ) );
-		}
-
-		return $instance;
-
-	}
-
-	/**
-	 * Echo the settings update form.
-	 *
-	 * @since 0.1.8
-	 *
-	 * @param array $instance Current settings
-	 */
-	function form( $instance ) {
-
-		/** Merge with defaults */
-		$instance = wp_parse_args( (array) $instance, $this->defaults );
-
-		?>
-		<h3><?php _e( 'Twitter App Credentials', 'wds_twwi' ); ?></h3>
-		<p>
-			<label for="<?php echo $this->get_field_id( 'consumer_key' ); ?>"><?php _e( 'Consumer Key', 'wds_twwi' ); ?>:</label>
-			<input type="text" id="<?php echo $this->get_field_id( 'consumer_key' ); ?>" name="<?php echo $this->get_field_name( 'consumer_key' ); ?>" value="<?php echo esc_attr( $instance['consumer_key'] ); ?>" class="widefat" />
-		</p>
-		<p>
-			<label for="<?php echo $this->get_field_id( 'consumer_secret' ); ?>"><?php _e( 'Consumer Secret', 'wds_twwi' ); ?>:</label>
-			<input type="text" id="<?php echo $this->get_field_id( 'consumer_secret' ); ?>" name="<?php echo $this->get_field_name( 'consumer_secret' ); ?>" value="<?php echo esc_attr( $instance['consumer_secret'] ); ?>" class="widefat" />
-		</p>
-		<p>
-			<label for="<?php echo $this->get_field_id( 'access_token' ); ?>"><?php _e( 'Access Token', 'wds_twwi' ); ?>:</label>
-			<input type="text" id="<?php echo $this->get_field_id( 'access_token' ); ?>" name="<?php echo $this->get_field_name( 'access_token' ); ?>" value="<?php echo esc_attr( $instance['access_token'] ); ?>" class="widefat" />
-		</p>
-		<p>
-			<label for="<?php echo $this->get_field_id( 'access_token_secret' ); ?>"><?php _e( 'Access Token Secret', 'wds_twwi' ); ?>:</label>
-			<input type="text" id="<?php echo $this->get_field_id( 'access_token_secret' ); ?>" name="<?php echo $this->get_field_name( 'access_token_secret' ); ?>" value="<?php echo esc_attr( $instance['access_token_secret'] ); ?>" class="widefat" />
-		</p>
-		<!-- <p class="description"><a href="http://webdevstudios.com/2013/08/29/how-to-create-a-twitter-app-to-help-alleviate-your-1-1-api-changeover-woes" target="_blank"><?php _e( 'How To Create a Twitter App', 'wds_twwi' ); ?></a></p> -->
-
-		<h3><?php _e( 'Widget Options', 'wds_twwi' ); ?></h3>
-		<p>
-			<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title', 'wds_twwi' ); ?>:</label>
-			<input type="text" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" value="<?php echo esc_attr( $instance['title'] ); ?>" class="widefat" />
-		</p>
-
-		<p>
-			<label for="<?php echo $this->get_field_id( 'twitter_id' ); ?>"><?php _e( 'Twitter Username', 'wds_twwi' ); ?>:</label>
-			<input type="text" id="<?php echo $this->get_field_id( 'twitter_id' ); ?>" name="<?php echo $this->get_field_name( 'twitter_id' ); ?>" value="<?php echo esc_attr( $instance['twitter_id'] ); ?>" class="widefat" />
-		</p>
-
-		<p>
-			<label for="<?php echo $this->get_field_id( 'twitter_num' ); ?>"><?php _e( 'Number of Tweets to Show', 'wds_twwi' ); ?>:</label>
-			<input type="text" id="<?php echo $this->get_field_id( 'twitter_num' ); ?>" name="<?php echo $this->get_field_name( 'twitter_num' ); ?>" value="<?php echo esc_attr( $instance['twitter_num'] ); ?>" size="3" />
-		</p>
-
-		<p>
-			<input id="<?php echo $this->get_field_id( 'twitter_hide_replies' ); ?>" type="checkbox" name="<?php echo $this->get_field_name( 'twitter_hide_replies' ); ?>" value="1" <?php checked( $instance['twitter_hide_replies'] ); ?>/>
-			<label for="<?php echo $this->get_field_id( 'twitter_hide_replies' ); ?>"><?php _e( 'Hide @ Replies', 'wds_twwi' ); ?></label>
-		</p>
-
-		<p>
-			<input id="<?php echo $this->get_field_id( 'show_time_stamp' ); ?>" type="checkbox" name="<?php echo $this->get_field_name( 'show_time_stamp' ); ?>" value="1" <?php checked( $instance['show_time_stamp'] ); ?>/>
-			<label for="<?php echo $this->get_field_id( 'show_time_stamp' ); ?>"><?php _e( 'Show Tweet Timestamp', 'wds_twwi' ); ?></label>
-		</p>
-
-		<p>
-			<label for="<?php echo $this->get_field_id( 'twitter_duration' ); ?>"><?php _e( 'Load new Tweets every', 'wds_twwi' ); ?></label>
-			<select name="<?php echo $this->get_field_name( 'twitter_duration' ); ?>" id="<?php echo $this->get_field_id( 'twitter_duration' ); ?>">
-				<option value="5" <?php selected( 5, $instance['twitter_duration'] ); ?>><?php _e( '5 Min.' , 'wds_twwi' ); ?></option>
-				<option value="15" <?php selected( 15, $instance['twitter_duration'] ); ?>><?php _e( '15 Minutes' , 'wds_twwi' ); ?></option>
-				<option value="30" <?php selected( 30, $instance['twitter_duration'] ); ?>><?php _e( '30 Minutes' , 'wds_twwi' ); ?></option>
-				<option value="60" <?php selected( 60, $instance['twitter_duration'] ); ?>><?php _e( '1 Hour' , 'wds_twwi' ); ?></option>
-				<option value="120" <?php selected( 120, $instance['twitter_duration'] ); ?>><?php _e( '2 Hours' , 'wds_twwi' ); ?></option>
-				<option value="240" <?php selected( 240, $instance['twitter_duration'] ); ?>><?php _e( '4 Hours' , 'wds_twwi' ); ?></option>
-				<option value="720" <?php selected( 720, $instance['twitter_duration'] ); ?>><?php _e( '12 Hours' , 'wds_twwi' ); ?></option>
-				<option value="1440" <?php selected( 1440, $instance['twitter_duration'] ); ?>><?php _e( '24 Hours' , 'wds_twwi' ); ?></option>
-			</select>
-		</p>
-
-		<p>
-			<input id="<?php echo $this->get_field_id( 'follow_link_show' ); ?>" type="checkbox" name="<?php echo $this->get_field_name( 'follow_link_show' ); ?>" value="1" <?php checked( $instance['follow_link_show'] ); ?>/>
-			<label for="<?php echo $this->get_field_id( 'follow_link_show' ); ?>"><?php _e( 'Include link to twitter page?', 'wds_twwi' ); ?></label>
-		</p>
-
-		<p>
-			<label for="<?php echo $this->get_field_id( 'follow_link_text' ); ?>"><?php _e( 'Link Text (required)', 'wds_twwi' ); ?>:</label>
-			<input type="text" id="<?php echo $this->get_field_id( 'follow_link_text' ); ?>" name="<?php echo $this->get_field_name( 'follow_link_text' ); ?>" value="<?php echo esc_attr( $instance['follow_link_text'] ); ?>" class="widefat" />
-		</p>
-		<?php
-
+		return $tweets;
 	}
 
 	/**
@@ -396,23 +242,66 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 	 *
 	 * @link https://github.com/mzsanford/twitter-text-php
 	 *
-	 * @param  string $content Post content
-	 * @return string          Modified post content
+	 * @since  0.1.0
+	 * @param  string $content Tweet content
+	 * @return string          Modified tweet content
 	 */
-	public function twitter_linkify( $content ) {
+	public static function twitter_linkify( $content ) {
 
 		// Include the Twitter-Text-PHP library
 		if ( ! class_exists( 'Twitter_Regex' ) )
 			require_once( WDS_TWWI_PATH .'lib/TwitterText/lib/Twitter/Autolink.php' );
 
 		return Twitter_Autolink::create( $content, true )
-		->setNoFollow(false)->setExternal(true)->setTarget('_blank')
-		->setUsernameClass('tweet-url username')
-		->setListClass('tweet-url list-slug')
-		->setHashtagClass('tweet-url hashtag')
-		->setURLClass('tweet-url tweek-link')
+		->setNoFollow(false)->setExternal(true)->setTarget( '_blank' )
+		->setUsernameClass( 'tweet-url username' )
+		->setListClass( 'tweet-url list-slug' )
+		->setHashtagClass( 'tweet-url hashtag' )
+		->setURLClass( 'tweet-url tweek-link' )
 		->addLinks();
 
 	}
 
+	/**
+	 * Return error message in an array
+	 * @since  0.1.1
+	 * @param  string $msg Error message (optional)
+	 * @return array       Error message in an array
+	 */
+	public static function do_error( $msg = '' ) {
+		$msg = $msg ? $msg : self::$error;
+		return array( apply_filters( 'wds_twwi_twitter_error', $msg ) );
+	}
+
+	/**
+	 * Return setting defaults
+	 * @since  0.1.1
+	 * @return array WDS_Twitter $defaults array
+	 */
+	public static function defaults() {
+		return apply_filters( 'wds_twwi_twitter_defaults', self::$defaults );
+	}
+
 }
+
+// init our class
+WDS_Twitter::init();
+
+
+/**
+ * Activate the plugin
+ */
+function wds_twwi_activate() {
+	// First load the init scripts in case any rewrite functionality is being loaded
+	WDS_Twitter::init();
+
+	// flush_rewrite_rules();
+}
+register_activation_hook( __FILE__, 'wds_twwi_activate' );
+
+/**
+ * Deactivate the plugin
+ */
+function wds_twwi_deactivate() {
+}
+register_deactivation_hook( __FILE__, 'wds_twwi_deactivate' );
