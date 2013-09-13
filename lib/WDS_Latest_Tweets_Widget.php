@@ -95,7 +95,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 		/** Merge with defaults */
 		$instance = wp_parse_args( (array) $instance, WDS_Twitter::defaults() );
 
-		if ( ! WDS_Twitter::$hide_twitter_app_fields ) {
+		if ( ! WDS_Twitter::$hide_app_fields ) {
 			$this->twitter_app_fields( $instance );
 		}
 		?>

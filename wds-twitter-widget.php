@@ -53,11 +53,13 @@ class WDS_Twitter {
 		'consumer_secret'      => '',
 		'access_token'         => '',
 		'access_token_secret'  => '',
+		// Conditionally apply filters based on context
+		'context'              => 'widget',
 	);
 	// Generic Twitter API error
 	public static $error;
 	// Set to true to programatically set app creds (recommended)
-	public static $hide_twitter_app_fields = false;
+	public static $hide_app_fields = false;
 
 	/**
 	 * Creates or returns an instance of this class.
@@ -78,6 +80,7 @@ class WDS_Twitter {
 	private function __construct() {
 		add_action( 'init', array( $this, 'hooks' ) );
 		add_action( 'widgets_init', array( $this, 'widget' ) );
+		add_shortcode( 'wds_tweets', array( $this, 'get_tweets_list' ) );
 	}
 
 	/**
@@ -121,6 +124,16 @@ class WDS_Twitter {
 	}
 
 	/**
+	 * Shortcode that returns an html list of formatted tweets
+	 * @since  0.1.1
+	 * @param  array $settings Settings for grabbing tweets
+	 */
+	public static function tweets_shortcode( $settings ) {
+		$settings['context'] = 'shortcode';
+		return self::get_tweets_list( $settings );
+	}
+
+	/**
 	 * Gets an html list of formatted tweets
 	 * @since  0.1.1
 	 * @param  array  $settings Settings for grabbing tweets
@@ -128,8 +141,8 @@ class WDS_Twitter {
 	 */
 	public static function get_tweets_list( $settings ) {
 
-		$list_format  = apply_filters( 'wds_twwi_tweet_list_format', "<ul class=\"wds-latest-tweets\">\n%s</ul>\n" );
-		$tweet_format = apply_filters( 'wds_twwi_tweet_format', "\t<li>%s</li>\n" );
+		$list_format  = apply_filters( 'wds_twwi_tweet_list_format', "<ul class=\"wds-latest-tweets\">\n%s</ul>\n", $settings );
+		$tweet_format = apply_filters( 'wds_twwi_tweet_format', "\t<li>%s</li>\n", $settings );
 
 		$list = '';
 		$tweets = self::get_tweets( $settings );
@@ -182,7 +195,7 @@ class WDS_Twitter {
 				$settings['access_token_secret']
 			) );
 			if ( is_wp_error( $tw ) ) {
-				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $tw ) : '' );
+				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $tw, false ) : '' );
 			}
 
 			// Retrieve tweets from the api
@@ -192,7 +205,7 @@ class WDS_Twitter {
 				return array( __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' ) );
 
 			} elseif ( is_wp_error( $twitter ) ) {
-				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $twitter ) : '' );
+				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $twitter, false ) : '' );
 			}
 
 			$count = 1;
@@ -282,6 +295,37 @@ class WDS_Twitter {
 		return apply_filters( 'wds_twwi_twitter_defaults', self::$defaults );
 	}
 
+	/**
+	 * Disables widget app fields by adding them programmatically
+	 * @since 0.1.1
+	 * @param array $app App credentials
+	 */
+	public static function disable_widget_app_settings( $app = array() ) {
+
+		// Make sure we have our Twitter class
+		if ( ! class_exists( 'TwitterWP' ) )
+			require_once( WDS_TWWI_PATH .'lib/TwitterWP/lib/TwitterWP.php' );
+
+		// initiate your app
+		$tw = TwitterWP::start( $app );
+		if ( is_wp_error( $tw ) ) {
+			self::$error = $tw->show_wp_error( $tw, false );
+			add_action( 'all_admin_notices', array( $this, 'bad_app' ) );
+			return;
+		}
+
+		// Ok, app's good, hide the widget fields
+		WDS_Twitter::$hide_app_fields = true;
+	}
+
+	/**
+	 * Displays any errors output from WDS_Twitter::disable_widget_app_settings in the admin dashboard
+	 * @since  0.1.1
+	 */
+	public static function bad_app() {
+		printf( '<div id="message" class="updated">%s</div>', self::$error );
+	}
+
 }
 
 // init our class
@@ -305,3 +349,15 @@ register_activation_hook( __FILE__, 'wds_twwi_activate' );
 function wds_twwi_deactivate() {
 }
 register_deactivation_hook( __FILE__, 'wds_twwi_deactivate' );
+
+/**
+ * Disables widget app fields by adding them programmatically
+ *
+ * Will displays any app errors in the admin dashboard
+ *
+ * @since 0.1.1
+ * @param array $app App credentials
+ */
+function wds_twwi_disable_widget_app_settings( $app = array() ) {
+	WDS_Twitter::disable_widget_app_settings( $app );
+}
