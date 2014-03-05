@@ -1,6 +1,6 @@
 [submodule "lib/TwitterWP"]
 	path = lib/TwitterWP
-	url = https://jtsternberg@github.com/jtsternberg/TwitterWP.git
+	url = https://github.com/jtsternberg/TwitterWP.git
 [submodule "lib/TwitterText"]
 	path = lib/TwitterText
 	url = https://github.com/mzsanford/twitter-text-php.git
