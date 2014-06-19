@@ -91,7 +91,6 @@ class WDS_Twitter {
 		// Generic Twitter API error
 		self::$error = __( 'There was an error while attempting to contact the Twitter API. Please try again.', 'wds_twwi' );
 		$locale = apply_filters( 'plugin_locale', get_locale(), 'wds_twwi' );
-//		load_textdomain( 'wds_twwi', WP_LANG_DIR . '/wds_twwi/wds_twwi-' . $locale . '.mo' );
 		load_plugin_textdomain( 'wds_twwi', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 	}
 
