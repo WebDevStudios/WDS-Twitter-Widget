@@ -21,6 +21,9 @@ wds_twwi_disable_widget_app_settings( array(
 
 If there's an error with your app credentials, the error will be displayed in the WordPress dashboard.
 
+Example usage if wanting to disable widget:
+[https://gist.github.com/jtsternberg/ace26c317c4d4a070abd](https://gist.github.com/jtsternberg/ace26c317c4d4a070abd)
+
 ### Installation
 
 1. Upload the entire `/wds-twitter-widget` directory to the `/wp-content/plugins/` directory.
