@@ -3,7 +3,7 @@ WDS Twitter Widget
 
 A widget that lets you show a user's latest tweets. Built with developers in mind and has many filters throughout.
 
-There is a function for disabling the Twitter App credential fields in the widget. This is handy if you don't want `consumer_key`, `consumer_secret`, `access_token`, and `access_token_secret` visibile to users of the WordPress dashboard.
+There is a function for disabling the Twitter App credential fields in the widget. This is handy if you don't want `consumer_key`, `consumer_secret`, `access_token`, and `access_token_secret` visibile to users of the WordPress dashboard, and allows you to keep it in version control.
 
 To disable:
 ```php
