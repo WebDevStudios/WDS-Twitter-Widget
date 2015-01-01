@@ -26,9 +26,9 @@ Example usage if wanting to disable widget:
 
 ### Installation
 
+1. Recursively clone this repo (`git clone --recursive https://github.com/WebDevStudios/WDS-Twitter-Widget.git`), or [download this zip](https://raw.githubusercontent.com/WebDevStudios/WDS-Twitter-Widget/master/wds-twitter-widget.zip).
 1. Upload the entire `/wds-twitter-widget` directory to the `/wp-content/plugins/` directory.
 2. Activate WDS Twitter Widget through the 'Plugins' menu in WordPress.
-3. Note: You'll need to clone (recursive) this repo, not just download the zip, as it includes some other github submodules and they won't be included in the zip. * womp womp * To do that, `git clone --recursive https://github.com/WebDevStudios/WDS-Twitter-Widget.git`
 
 ### Plugin Details
 
