@@ -3,7 +3,7 @@
  * Plugin Name: WDS Twitter Widget
  * Plugin URI:  http://webdevstudios.com
  * Description: WordPress Twitter widget
- * Version:     0.1.1
+ * Version:     0.1.2
  * Author:      WebDevStudios
  * Author URI:  http://webdevstudios.com
  * Donate link: http://webdevstudios.com
@@ -31,7 +31,7 @@
  */
 
 // Useful global constants
-define( 'WDS_TWWI_VERSION', '0.1.1' );
+define( 'WDS_TWWI_VERSION', '0.1.2' );
 define( 'WDS_TWWI_URL',     plugin_dir_url( __FILE__ ) );
 define( 'WDS_TWWI_PATH',    dirname( __FILE__ ) . '/' );
 
@@ -164,8 +164,9 @@ class WDS_Twitter {
 		$settings = wp_parse_args( (array) $settings, self::defaults() );
 
 		$twitter_id = sanitize_text_field( apply_filters( 'wds_twwi_twitter_id', $settings['twitter_id'], $settings ) );
-		if ( ! trim( $twitter_id ) )
+		if ( ! trim( $twitter_id ) ) {
 			return self::do_error( __( 'Please provide a Twitter Username.', 'wds_twwi' ) );
+		}
 
 		$twitter_num = (int) $settings['twitter_num'];
 		$twitter_duration = absint( $settings['twitter_duration'] ) < 1 ? 60 : absint( $settings['twitter_duration'] );
@@ -183,8 +184,9 @@ class WDS_Twitter {
 			$tweets = array();
 
 			// Make sure we have our Twitter class
-			if ( ! class_exists( 'TwitterWP' ) )
+			if ( ! class_exists( 'TwitterWP' ) ) {
 				require_once( WDS_TWWI_PATH .'lib/TwitterWP/lib/TwitterWP.php' );
+			}
 
 			// Initiate our Twitter app
 			$tw = TwitterWP::start( array(
@@ -198,18 +200,18 @@ class WDS_Twitter {
 			}
 
 			// Retrieve tweets from the api
-			$twitter = $tw->get_tweets( $twitter_id, $number );
+			$tweets = self::fetch_tweets( $tw, compact( 'twitter_id', 'number' ) );
 
-			if ( ! $twitter ) {
+			if ( ! $tweets ) {
 				return array( __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' ) );
 
-			} elseif ( is_wp_error( $twitter ) ) {
-				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $twitter, false ) : '' );
+			} elseif ( is_wp_error( $tweets ) ) {
+				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $tweets, false ) : '' );
 			}
 
 			$count = 1;
 			// Build the tweets array
-			foreach ( (array) $twitter as $tweet ) {
+			foreach ( (array) $tweets as $tweet ) {
 				// Don't include @ replies (if applicable)
 				if ( $hide_replies && $tweet->in_reply_to_user_id )
 					continue;
@@ -243,6 +245,29 @@ class WDS_Twitter {
 			$time = ( $twitter_duration * 60 );
 			// Save tweets to a transient
 			set_transient( $trans_id, $tweets, $time );
+		}
+
+		return $tweets;
+	}
+
+	/**
+	 * Retrieve tweets from the Twitter API
+	 * Checks for tweets returned from the 'wds_twitter_fetch_tweets' filter
+	 * before returning the default set of tweets for the user.
+	 *
+	 * @since  0.1.2
+	 *
+	 * @param  string $twitter_id Twitter user ID
+	 * @param  int    $number     Number of tweets to retrieve
+	 *
+	 * @return mixed              Array of tweets or WP_Error
+	 */
+	public static function fetch_tweets( $tw, $args = array() ) {
+
+		$tweets = apply_filters( 'wds_twitter_fetch_tweets', null, $tw, $args );
+
+		if ( is_null( $tweets ) ) {
+			$tweets = $tw->get_tweets( $args['twitter_id'], $args['number'] );
 		}
 
 		return $tweets;
