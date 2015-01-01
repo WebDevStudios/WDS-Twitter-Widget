@@ -145,8 +145,10 @@ class WDS_Twitter {
 
 		$list = '';
 		$tweets = self::get_tweets( $settings );
-		foreach( (array) $tweets as $tweet )
+
+		foreach( (array) $tweets as $tweet ) {
 			$list .= sprintf( $tweet_format, $tweet );
+		}
 
 		return sprintf( $list_format, $list );
 
@@ -200,18 +202,18 @@ class WDS_Twitter {
 			}
 
 			// Retrieve tweets from the api
-			$tweets = self::fetch_tweets( $tw, compact( 'twitter_id', 'number' ) );
+			$_tweets = self::fetch_tweets( $tw, compact( 'twitter_id', 'number' ) );
 
-			if ( ! $tweets ) {
+			if ( ! $_tweets ) {
 				return array( __( 'The Twitter API is taking too long to respond. Please try again later.', 'wds_twwi' ) );
 
-			} elseif ( is_wp_error( $tweets ) ) {
-				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $tweets, false ) : '' );
+			} elseif ( is_wp_error( $_tweets ) ) {
+				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $_tweets, false ) : '' );
 			}
 
 			$count = 1;
 			// Build the tweets array
-			foreach ( (array) $tweets as $tweet ) {
+			foreach ( (array) $_tweets as $tweet ) {
 				// Don't include @ replies (if applicable)
 				if ( $hide_replies && $tweet->in_reply_to_user_id )
 					continue;
