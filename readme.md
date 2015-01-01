@@ -43,6 +43,9 @@ Example usage if wanting to disable widget:
 
 ### Changelog
 
+##### 0.1.2
+* New filter, `wds_twitter_fetch_tweets` for overriding the retrieval of tweets.
+
 ##### 0.1.1
 * Refactor plugin so that methods for getting tweets are publicly accessible (so the widget can be bypassed)
 * Additional filters for manipulating data
