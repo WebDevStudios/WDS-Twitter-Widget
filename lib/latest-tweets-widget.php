@@ -22,7 +22,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 			'height'  => 250,
 		);
 
-		parent::__construct( 'latest-tweets', __('WDS - Latest Tweets', 'wds_twwi'), $widget_ops, $control_ops );
+		parent::__construct( 'latest-tweets', __( 'WDS - Latest Tweets', 'wds_twwi' ), $widget_ops, $control_ops );
 
 	}
 
@@ -41,8 +41,9 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 
 		echo $before_widget;
 
-		if ( $instance['title'] )
+		if ( $instance['title'] ) {
 			echo $before_title . apply_filters( 'widget_title', $instance['title'], $instance, $this->id_base ) . $after_title;
+		}
 
 		WDS_Twitter::tweets_list( $instance );
 
@@ -66,11 +67,12 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 	public function update( $new_instance, $old_instance ) {
 
 		$defaults = WDS_Twitter::defaults();
+
 		// Get Transient ID
-		$twitter_id = apply_filters( 'wds_twwi_twitter_id', ( isset( $old_instance['twitter_id'] ) ? $old_instance['twitter_id'] : '' ), $old_instance );
-		$twitter_num = isset( $old_instance['twitter_num'] ) ? $old_instance['twitter_num'] : $defaults['twitter_num'];
+		$twitter_id       = apply_filters( 'wds_twwi_twitter_id', ( isset( $old_instance['twitter_id'] ) ? $old_instance['twitter_id'] : '' ), $old_instance );
+		$twitter_num      = isset( $old_instance['twitter_num'] ) ? $old_instance['twitter_num'] : $defaults['twitter_num'];
 		$twitter_duration = isset( $old_instance['twitter_duration'] ) ? $old_instance['twitter_duration'] : $defaults['twitter_duration'];
-		$trans_id = $twitter_id .'-'. $twitter_num .'-'. $twitter_duration;
+		$trans_id         = $twitter_id .'-'. $twitter_num .'-'. $twitter_duration;
 
 		// Force the transient to refresh
 		delete_transient( $trans_id );

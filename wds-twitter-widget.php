@@ -67,8 +67,9 @@ class WDS_Twitter {
 	 * @return WDS_Twitter A single instance of this class.
 	 */
 	public static function init() {
-		if ( null == self::$settings )
+		if ( null == self::$settings ) {
 			self::$settings = new self();
+		}
 
 		return self::$settings;
 	}
@@ -100,15 +101,17 @@ class WDS_Twitter {
 	 */
 	public function widget() {
 		// Filter to turn off widget registration
-		if ( ! apply_filters( 'wds_twwi_do_widget', true ) )
+		if ( ! apply_filters( 'wds_twwi_do_widget', true ) ) {
 			return;
+		}
 		// Include widget
-		require_once( WDS_TWWI_PATH .'lib/WDS_Latest_Tweets_Widget.php' );
+		require_once( WDS_TWWI_PATH .'lib/latest-tweets-widget.php' );
 		// Register widget
 		register_widget( 'WDS_Latest_Tweets_Widget' );
 		// easter egg
-		if ( ! apply_filters( 'wds_twwi_alt_widget_style', false ) )
+		if ( ! apply_filters( 'wds_twwi_alt_widget_style', false ) ) {
 			return;
+		}
 		// Modify styling of widget
 		require_once( WDS_TWWI_PATH .'lib/alt-widget-style/WDS_Twitter_Widget_Mod.php' );
 	}
@@ -146,7 +149,7 @@ class WDS_Twitter {
 		$list = '';
 		$tweets = self::get_tweets( $settings );
 
-		foreach( (array) $tweets as $tweet ) {
+		foreach ( (array) $tweets as $tweet ) {
 			$list .= sprintf( $tweet_format, $tweet );
 		}
 
@@ -195,7 +198,7 @@ class WDS_Twitter {
 				$settings['consumer_key'],
 				$settings['consumer_secret'],
 				$settings['access_token'],
-				$settings['access_token_secret']
+				$settings['access_token_secret'],
 			) );
 			if ( is_wp_error( $tw ) ) {
 				return self::do_error( is_user_logged_in() ? $tw->show_wp_error( $tw, false ) : '' );
@@ -215,8 +218,9 @@ class WDS_Twitter {
 			// Build the tweets array
 			foreach ( (array) $_tweets as $tweet ) {
 				// Don't include @ replies (if applicable)
-				if ( $hide_replies && $tweet->in_reply_to_user_id )
+				if ( $hide_replies && $tweet->in_reply_to_user_id ) {
 					continue;
+				}
 
 				// Format tweet (hashtags, links, etc)
 				$content = self::twitter_linkify( $tweet->text );
@@ -233,16 +237,19 @@ class WDS_Twitter {
 				$tweets[] = apply_filters( 'wds_twwi_tweet_content', $content, $tweet, $settings );
 
 				// Stop the loop if we've got enough tweets
-				if ( $hide_replies && $count >= $twitter_num )
-						break;
+				if ( $hide_replies && $count >= $twitter_num ) {
+					break;
+				}
+
 				$count++;
 			}
 
 			// Just in case
 			$tweets = array_slice( (array) $tweets, 0, $twitter_num );
 
-			if ( $settings['follow_link_show'] && $settings['follow_link_text'] )
+			if ( $settings['follow_link_show'] && $settings['follow_link_text'] ) {
 				$tweets[] = '<a href="' . esc_url( 'http://twitter.com/'.$twitter_id ).'" target="_blank">'. esc_html( $settings['follow_link_text'] ) .'</a>';
+			}
 
 			$time = ( $twitter_duration * 60 );
 			// Save tweets to a transient
@@ -288,17 +295,17 @@ class WDS_Twitter {
 	public static function twitter_linkify( $content ) {
 
 		// Include the Twitter-Text-PHP library
-		if ( ! class_exists( 'Twitter_Regex' ) )
+		if ( ! class_exists( 'Twitter_Regex' ) ) {
 			require_once( WDS_TWWI_PATH .'lib/TwitterText/lib/Twitter/Autolink.php' );
+		}
 
 		return Twitter_Autolink::create( $content, true )
-		->setNoFollow(false)->setExternal(true)->setTarget( '_blank' )
-		->setUsernameClass( 'tweet-url username' )
-		->setListClass( 'tweet-url list-slug' )
-		->setHashtagClass( 'tweet-url hashtag' )
-		->setURLClass( 'tweet-url tweek-link' )
-		->addLinks();
-
+			->setNoFollow( false )->setExternal( true )->setTarget( '_blank' )
+			->setUsernameClass( 'tweet-url username' )
+			->setListClass( 'tweet-url list-slug' )
+			->setHashtagClass( 'tweet-url hashtag' )
+			->setURLClass( 'tweet-url tweek-link' )
+			->addLinks();
 	}
 
 	/**
@@ -329,8 +336,9 @@ class WDS_Twitter {
 	public static function disable_widget_app_settings( $app = array() ) {
 
 		// Make sure we have our Twitter class
-		if ( ! class_exists( 'TwitterWP' ) )
+		if ( ! class_exists( 'TwitterWP' ) ) {
 			require_once( WDS_TWWI_PATH .'lib/TwitterWP/lib/TwitterWP.php' );
+		}
 
 		// initiate your app
 		$tw = TwitterWP::start( $app );
@@ -356,25 +364,6 @@ class WDS_Twitter {
 
 // init our class
 WDS_Twitter::init();
-
-
-/**
- * Activate the plugin
- */
-function wds_twwi_activate() {
-	// First load the init scripts in case any rewrite functionality is being loaded
-	WDS_Twitter::init();
-
-	// flush_rewrite_rules();
-}
-register_activation_hook( __FILE__, 'wds_twwi_activate' );
-
-/**
- * Deactivate the plugin
- */
-function wds_twwi_deactivate() {
-}
-register_deactivation_hook( __FILE__, 'wds_twwi_deactivate' );
 
 /**
  * Disables widget app fields by adding them programmatically
