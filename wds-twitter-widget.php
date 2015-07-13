@@ -344,7 +344,7 @@ class WDS_Twitter {
 		$tw = TwitterWP::start( $app );
 		if ( is_wp_error( $tw ) ) {
 			self::$error = $tw->show_wp_error( $tw, false );
-			add_action( 'all_admin_notices', array( $this, 'bad_app' ) );
+			add_action( 'all_admin_notices', array( __CLASS__, 'bad_app' ) );
 			return;
 		}
 
