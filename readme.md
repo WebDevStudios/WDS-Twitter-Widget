@@ -36,12 +36,15 @@ Example usage if wanting to disable widget:
 * Donate link:       [http://webdevstudios.com](http://webdevstudios.com)
 * Tags:					Twitter, Twitter API, 1.1 API, widget, shortcode
 * Requires at least: 3.5.0
-* Tested up to:      4.2
-* Stable tag:        0.1.3
+* Tested up to:      4.4
+* Stable tag:        0.1.4
 * License:           GPLv2 or later
 * License URI:       [http://www.gnu.org/licenses/gpl-2.0.html](http://www.gnu.org/licenses/gpl-2.0.html)
 
 ### Changelog
+
+##### 0.1.4
+* Replace `esc_url` with `esc_url_raw` so query parameter values are not converted.
 
 ##### 0.1.3
 * Update for xss vulnerability, https://make.wordpress.org/plugins/2015/04/20/fixing-add_query_arg-and-remove_query_arg-usage

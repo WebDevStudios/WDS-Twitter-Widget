@@ -3,7 +3,7 @@
  * Plugin Name: WDS Twitter Widget
  * Plugin URI:  http://webdevstudios.com
  * Description: WordPress Twitter widget
- * Version:     0.1.3
+ * Version:     0.1.4
  * Author:      WebDevStudios
  * Author URI:  http://webdevstudios.com
  * Donate link: http://webdevstudios.com
@@ -31,7 +31,7 @@
  */
 
 // Useful global constants
-define( 'WDS_TWWI_VERSION', '0.1.3' );
+define( 'WDS_TWWI_VERSION', '0.1.4' );
 define( 'WDS_TWWI_URL',     plugin_dir_url( __FILE__ ) );
 define( 'WDS_TWWI_PATH',    dirname( __FILE__ ) . '/' );
 
