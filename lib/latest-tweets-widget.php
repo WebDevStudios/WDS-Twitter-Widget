@@ -14,6 +14,7 @@ class WDS_Latest_Tweets_Widget extends WP_Widget {
 		$widget_ops = array(
 			'classname'   => 'latest-tweets',
 			'description' => __( 'Display a list of a user\'s latest tweets.', 'wds_twwi' ),
+			'customize_selective_refresh' => true,
 		);
 
 		$control_ops = array(
